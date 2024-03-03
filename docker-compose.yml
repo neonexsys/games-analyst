@@ -1,0 +1,34 @@
+# docker-compose.yml
+
+version: '3.9'
+
+services:
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8001:8001
+    depends_on:
+      - mongoservice
+    networks:
+      - backendnetwork
+
+  mongoservice:
+    image: mongo:latest
+    restart: always
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "admin"
+      MONGO_INITDB_ROOT_PASSWORD: "admin"
+      MONGO_INITDB_DATABASE: "gameanalyst"
+    volumes:
+      - ./initdb.d/:/docker-entrypoint-initdb.d/
+      - ./dbdata/mongo_data/data:/data/db/
+    networks:
+      - backendnetwork
+
+networks:
+  backendnetwork:
+    external: true
