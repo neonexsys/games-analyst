@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from metacritic_scraper import MetacriticScraper
+from src.metacritic_scraper import MetacriticScraper
 from fastapi.responses import StreamingResponse
 import pandas as pd
 import io
