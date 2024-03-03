@@ -1,10 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-from pymongo import MongoClient
 import csv
-import urllib.parse
 
+from src.db import MongoDB
 
 
 
@@ -19,12 +18,9 @@ class MetacriticScraper:
     )
     self.games_data = []
 
-    username = urllib.parse.quote_plus('admin')
-    password = urllib.parse.quote_plus('admin')
+    self.db = MongoDB('metacritic_scores')
+    self.collection = self.db.collection
 
-    self.client = MongoClient(f'mongodb://{username}:{password}@mongoservice')
-    self.db = self.client["gamesanalyst"]
-    self.collection = self.db["metacritic_scores"]
 
   def scrape(self):
     for page in range(1, 5):  # Adjust the range as needed
