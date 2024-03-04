@@ -22,6 +22,7 @@ Data is stored within a Mongo DB and configured within the .env file
 
 in the .env file the following configuration exists
 
+```
 MONGODB_DB_USERNAME=          # DB username
 MONGODB_DB_PASSWORD=          # DB password
 MONGODB_DB_HOST=              # DB host. When running in docker use "mongoservice" as defined in the docker-compose.yml. When running locally use "localhost"
@@ -30,6 +31,7 @@ MONGODB_DB_NAME=gamesanalyst  # default DB Name. "gamesanalyst" is a good defaul
 
 RESTAPI_PUBLISHED_PORT=       # the outward facing REST API port.
 MONGODB_DB_PUBLISHED_PORT=    # the outward facing Mongo DB port.
+```
 
 ## How to Run
 
