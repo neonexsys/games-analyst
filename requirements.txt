@@ -4,3 +4,4 @@ pymongo
 fastapi
 pandas
 uvicorn
+python-dotenv
