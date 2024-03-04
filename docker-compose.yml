@@ -8,7 +8,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 8001:8001
+      - ${RESTAPI_PUBLISHED_PORT}:8001
     depends_on:
       - mongoservice
     networks:
@@ -18,7 +18,7 @@ services:
     image: mongo:latest
     restart: always
     ports:
-      - 27017:27017
+      - ${MONGODB_DB_PUBLISHED_PORT}:27017
     environment:
       MONGO_INITDB_ROOT_USERNAME: "${MONGODB_DB_USERNAME}"
       MONGO_INITDB_ROOT_PASSWORD: "${MONGODB_DB_PASSWORD}"
