@@ -8,7 +8,7 @@ load_dotenv()  # take environment variables from .env.
 
 
 class MongoDB:
-  def __init__(self, collection_name):
+  def __init__(self, collection_name=None):
     username = urllib.parse.quote_plus(os.getenv("MONGODB_DB_USERNAME"))
     password = urllib.parse.quote_plus(os.getenv("MONGODB_DB_PASSWORD"))
     host = os.getenv("MONGODB_DB_HOST")
@@ -16,4 +16,9 @@ class MongoDB:
 
     self.client = MongoClient(f"mongodb://{username}:{password}@{host}:{port}")
     self.db = self.client["gamesanalyst"]
-    self.collection = self.db[collection_name]
+
+    if collection_name:
+      self.collection = self.db[collection_name]
+
+  def get_db(self):
+    return self.db

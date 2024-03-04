@@ -18,7 +18,7 @@ class MetacriticScraper:
     )
     self.games_data = []
 
-    self.db = MongoDB('metacritic_scores')
+    self.db = MongoDB(collection_name='metacritic_scores')
     self.collection = self.db.collection
 
 

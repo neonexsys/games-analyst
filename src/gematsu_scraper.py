@@ -4,7 +4,8 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import requests
 import re
-from db import MongoDB
+
+from src.db import MongoDB
 
 
 class GematsuScraper:
@@ -20,8 +21,9 @@ class GematsuScraper:
     self.games_sales_data = []
     self.hardware_sales_data = []
 
-    self.db = MongoDB("gematsu_data")
-    self.collection = self.db.collection
+    self.mongo = MongoDB(collection_name="gematsu_data")
+    self.db = self.mongo.db
+    self.collection = self.mongo.collection
 
   def get_existing_entries(
     self, link: str, start_date: datetime, end_date: datetime
@@ -48,7 +50,11 @@ class GematsuScraper:
         text.replace_with(text.replace("\xa0", " "))
 
     # Find the <ol> tag that comes after a <p> tag containing <strong>Software Sales</strong>
-    sales_ols = soup.select(".post__content-main ol")
+    sales_ols = [
+      ol
+      for ol in soup.select(".post__content-main ol")
+      if "display: none" not in ol.get("style", "")
+    ]
     software_sales_ol = sales_ols[0] if sales_ols else None
     hardware_sales_ol = sales_ols[1] if len(sales_ols) > 1 else None
 
@@ -65,7 +71,7 @@ class GematsuScraper:
       game_title = li.em.text
 
       # Extract the company
-      company_match = re.search(r"\((.*?)\,", str(li.contents))
+      company_match = re.search(r"\((.*?)(?:,|\))", li.text)
       company = company_match.group(1) if company_match else None
 
       # Extract the release date
@@ -74,17 +80,31 @@ class GematsuScraper:
         datetime.strptime(date_match.group(), "%m/%d/%y") if date_match else None
       )
 
-      # Extract the weekly sales and total sales
-      sales_match = re.search(
-        r"(\d{1,3}(,\d{3})*)(?:\s*\((\d{1,3}(,\d{3})*|New)\))?\s*$",
-        str(li.contents[-1]),
-      )
-      software_sales = sales_match.group(1).replace(",", "") if sales_match else None
-      lifetime_sales = (
-        sales_match.group(3).replace(",", "")
-        if sales_match and sales_match.group(3) != "New"
-        else software_sales
-      )
+      # if the last element text contains New then use li.contents[-2] else use li.contents[-1]
+      is_new = False
+      if "New" in str(li.contents[-1]):
+        # Extract the weekly sales and total sales
+        is_new = True
+        sales_match = re.search(
+            r"–\s*(\d{1,3}(,\d{3})*)(?:\s*\((?:<strong>)?(New|\d{1,3}(,\d{2,3})*)(?:<\/strong>)?\))?",
+            str(li.contents[-2]),
+        )
+      else:
+        # Extract the weekly sales and total sales
+        sales_match = re.search(
+            r"–\s*(\d{1,3}(,\d{3})*)(?:\s*\((?:<strong>)?(New|\d{1,3}(,\d{2,3})*)(?:<\/strong>)?\))?",
+            str(li.contents[-1]),
+        )
+      
+      weekly_sales = sales_match.group(1).replace(",", "") if sales_match else None
+      if is_new:
+          lifetime_sales = weekly_sales
+      else:
+          lifetime_sales = (
+          sales_match.group(3).replace(",", "")
+          if sales_match and sales_match.group(3) and sales_match.group(3) != "New"
+          else None
+          )
 
       # Add the sales data to the list
       sales_data_list.append(
@@ -93,24 +113,25 @@ class GematsuScraper:
           "game_title": game_title,
           "company": company,
           "release_date": release_date,
-          "weekly_sales": software_sales,
-          "total_sales": lifetime_sales,
+          "weekly_sales": int(weekly_sales) if weekly_sales else None,
+          "total_sales": int(lifetime_sales) if lifetime_sales else None,
         }
       )
 
     for li in hardware_sales_ol.find_all("li"):
-      # Extract the platform
-      platform = li.a.text if li.a else li.contents[0].strip()
+      # Split the string on '–' to separate the platform from the sales numbers
+      parts = li.text.split("–")
+      platform = parts[0].strip()
 
       # Extract the weekly and lifetime sales
       sales_match = re.search(
-        r"(\d{1,3}(,\d{3})*)(?: \((\d{1,3}(,\d{3})*|New)\))?$", str(li.contents)
+        r"(\d{1,3}(,\d{3})*)(?:\s*\((\d{1,3}(,\d{3})*|New)\))?", parts[1]
       )
       weekly_sales = sales_match.group(1).replace(",", "") if sales_match else None
       lifetime_sales = (
         sales_match.group(3).replace(",", "")
         if sales_match and sales_match.group(3) != "New"
-        else weekly_sales
+        else None
       )
 
       # Add the data to the list
@@ -142,6 +163,7 @@ class GematsuScraper:
       end_date = datetime.strptime(end_date_str, "%m/%d/%y")
 
       # If the title matches the pattern "Famitsu Sales: DD/MM/YY – DD/MM/YY" and is not already in the database, navigate to the detail page, otherwise skip
+
       if (
         self.collection.find_one(
           {"start_date": start_date, "end_date": end_date, "link": link}
