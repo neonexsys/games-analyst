@@ -44,5 +44,3 @@ docker-compose up --build
 ## TODO
 
 1. Add more analytics retreiving end points
-2. Add a cron job to run scheduled scraping jobs 
-3. Command to reset DB

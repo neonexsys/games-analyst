@@ -163,10 +163,10 @@ def get_combined_data():
   db = mongo.get_db()
 
   # Get the date one month ago
-  one_month_ago = datetime.now() - timedelta(days=30)
+  three_months_ago = datetime.now() - timedelta(days=90)
 
   # Query the last month's worth of data from the 'gematsu_data' collection
-  gematsu_data = list(db["gematsu_data"].find({"end_date": {"$gte": one_month_ago}}))
+  gematsu_data = list(db["gematsu_data"].find({"end_date": {"$gte": three_months_ago}}))
 
   # Query all data from the 'metacritic_data' collection
   metacritic_data = list(db["metacritic_scores"].find())

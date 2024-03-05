@@ -1,3 +1,4 @@
+import time
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -9,7 +10,11 @@ from src.db import MongoDB
 
 class MetacriticScraper:
   def __init__(self):
-    self.base_url = "https://www.metacritic.com/browse/game/all/all/current-year/metascore/?platform=ps5&platform=xbox-series-x&platform=nintendo-switch&platform=pc&platform=mobile&platform=3ds&page="
+    thisyear = datetime.now().year
+    twoyearsago = thisyear - 10
+    print(f"Scraping games released between {twoyearsago} and {thisyear}...")
+    self.base_url = f"https://www.metacritic.com/browse/game/?releaseYearMin={twoyearsago}&releaseYearMax={thisyear}&platform=ps5&platform=xbox-series-x&platform=nintendo-switch&platform=pc&platform=mobile&platform=3ds&page="
+    print("Base URL: ", self.base_url)
     self.session = requests.Session()
     self.session.headers.update(
       {
@@ -23,16 +28,25 @@ class MetacriticScraper:
 
 
   def scrape(self):
-    for page in range(1, 5):  # Adjust the range as needed
-      print(f"Scraping page {page}...")
+    page:int = 1
+    while True:
+      print(f"\n>>> Scraping page {page}...")
       response = self.session.get(self.base_url + str(page))
       soup = BeautifulSoup(response.content, "html.parser")
       game_items = soup.find_all(
         "div", class_="c-finderProductCard c-finderProductCard-game"
       )
 
+      if not game_items:
+        print("No more game items found. Exiting...")
+        break
       for game_item in game_items:
         self.extract_game_data(game_item)
+
+      page += 1
+      # wait 500ms before scraping the next page
+      time.sleep(1)
+
 
   def extract_game_data(self, game_item):
     title = game_item.find("h3", class_="c-finderProductCard_titleHeading").text.strip()
