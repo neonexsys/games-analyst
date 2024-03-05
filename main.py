@@ -40,6 +40,11 @@ app = FastAPI()
 
 @app.get("/api/v1/scrape-metacritic", tags=["Scraping"])
 def scrape_metacritic():
+  """
+  This endpoint initiates the scraping process for Metacritic data. 
+  It creates a new instance of the MetacriticScraper, calls the scrape method to scrape data, 
+  writes the scraped data to a CSV file, and then writes the data to the MongoDB database.
+  """
   logger.info("Scraping started.")
   scraper = MetacriticScraper()
   scraper.scrape()
@@ -51,6 +56,11 @@ def scrape_metacritic():
 
 @app.get("/api/v1/scrape-gematsu", tags=["Scraping"])
 def scrape_gematsu():
+  """
+  This endpoint initiates the scraping process for Gematsu data. 
+  It creates a new instance of the GematsuScraper, calls the scrape method to scrape data, 
+  and then writes the scraped data to the MongoDB database.
+  """
   logger.info("Gematsu scraping started.")
   scraper = GematsuScraper()
   scraper.scrape()
@@ -63,6 +73,11 @@ def scrape_gematsu():
   "/api/v1/metacritic-data", response_class=FileResponse, tags=["Data Retrieval"]
 )
 def get_data():
+  """
+  This endpoint retrieves Metacritic data from the MongoDB database, 
+  converts the data to a pandas DataFrame, and then writes the DataFrame to a CSV file. 
+  The CSV file is then returned as a response.
+  """
   logger.info("Data retrieval started.")
   scraper = MetacriticScraper()
 
@@ -91,6 +106,12 @@ def get_data():
 
 @app.get("/api/v1/gematsu-data", tags=["Data Retrieval"])
 def get_gematsu_data():
+  """
+  This endpoint retrieves Gematsu data from the MongoDB database, 
+  flattens the sales data and hardware sales data, converts the data to pandas DataFrames, 
+  and then writes the DataFrames to an Excel file with two tabs. 
+  The Excel file is then returned as a response.
+  """
   logger.info("Gematsu data retrieval started.")
   scraper = GematsuScraper()
 
@@ -133,7 +154,11 @@ def get_gematsu_data():
 
 @app.get("/api/v1/get-latest-data", tags=["Data Retrieval"])
 def get_combined_data():
-
+  """
+  This endpoint retrieves the latest data from the 'gematsu_data' and 'metacritic_scores' collections in the MongoDB database.
+  It then flattens the 'sales_data' list of dictionaries in the 'gematsu_data' and converts it to a pandas DataFrame.
+  And then it merges the two DataFrames on the game name so that the metacritic data is added to the gematsu data.
+  """
   mongo = MongoDB()
   db = mongo.get_db()
 
@@ -159,15 +184,6 @@ def get_combined_data():
 
   # rename the 'release_date' column to 'release_date_metacritic' in the metacritic_df
   metacritic_df.rename(columns={"release_date": "release_date_metacritic"}, inplace=True)
-
-
-  # print(" ======== gematsu_df ========= ")
-  # print(gematsu_df.head())
-  # print(gematsu_df.columns)
-
-  # print(" ======== metacritic_df ========= ")
-  # print(metacritic_df.head())
-  # print(metacritic_df.columns)
 
 
   # Merge the two DataFrames on the game name using a left join
@@ -197,3 +213,19 @@ def get_combined_data():
     media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     filename=file_name,
   )
+
+@app.delete("/api/v1/clear-database", tags=["Data Management"])
+def clear_data():
+    """
+    This endpoint deletes all documents from the 'gematsu_data' and 'metacritic_scores' collections in the MongoDB database.
+    """
+    mongo = MongoDB()
+    db = mongo.get_db()
+
+    # Delete all documents from the 'gematsu_data' collection
+    db["gematsu_data"].delete_many({})
+
+    # Delete all documents from the 'metacritic_scores' collection
+    db["metacritic_scores"].delete_many({})
+
+    return {"message": "Data cleared from 'gematsu_data' and 'metacritic_scores' collections."}
