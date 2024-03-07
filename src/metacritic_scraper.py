@@ -11,7 +11,7 @@ from src.db import MongoDB
 class MetacriticScraper:
   def __init__(self):
     thisyear = datetime.now().year
-    twoyearsago = thisyear - 10
+    twoyearsago = thisyear - 1
     print(f"Scraping games released between {twoyearsago} and {thisyear}...")
     self.base_url = f"https://www.metacritic.com/browse/game/?releaseYearMin={twoyearsago}&releaseYearMax={thisyear}&platform=ps5&platform=xbox-series-x&platform=nintendo-switch&platform=pc&platform=mobile&platform=3ds&page="
     print("Base URL: ", self.base_url)
@@ -29,6 +29,7 @@ class MetacriticScraper:
 
   def scrape(self):
     page:int = 1
+    hybernate:bool = False
     while True:
       print(f"\n>>> Scraping page {page}...")
       response = self.session.get(self.base_url + str(page))
@@ -39,16 +40,22 @@ class MetacriticScraper:
 
       if not game_items:
         print("No more game items found. Exiting...")
-        break
+        if hybernate is False:
+          hybernate = True
+          print("Hybernating for 300 seconds...")
+          time.sleep(300)
+          continue
+        else:
+          break
       for game_item in game_items:
-        self.extract_game_data(game_item)
+        self.extract_game_data(game_item, page)
 
       page += 1
       # wait 500ms before scraping the next page
-      time.sleep(1)
+      time.sleep(30)
 
 
-  def extract_game_data(self, game_item):
+  def extract_game_data(self, game_item, pagenum:int):
     title = game_item.find("h3", class_="c-finderProductCard_titleHeading").text.strip()
     title = title.split(". ", 1)[1]  # Remove the number from the start of the title
 
@@ -65,7 +72,7 @@ class MetacriticScraper:
       ]  # Extract the rating
     except Exception as e:
       rating = "N/A"
-      print(f"An error occurred while getting the rating: {e}")
+      print(f"An error occurred while getting the rating for [{title}], [{release_date}], [page:{pagenum}]: {e}")
 
     try:
       metascore = game_item.find(

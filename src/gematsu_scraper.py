@@ -71,6 +71,7 @@ class GematsuScraper:
       game_title = li.em.text
 
       # Extract the company
+      print(li.text)
       company_match = re.search(r"\((.*?)(?:,|\))", li.text)
       company = company_match.group(1) if company_match else None
 
